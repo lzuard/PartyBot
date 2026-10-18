@@ -2,6 +2,7 @@ namespace PartyBot.Api.Configuration;
 
 public sealed class BotOptions
 {
+    public bool PollingEnabled { get; set; }
     public string BotToken { get; set; } = "";
     public long SuperAdminUserId { get; set; }
     public long[] OrganizerUserIds { get; set; } = [];

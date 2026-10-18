@@ -6,6 +6,11 @@ namespace PartyBot.Api.Configuration;
 public sealed class BotOptionsValidator(IHostEnvironment environment) : IValidateOptions<BotOptions>
 {
     public ValidateOptionsResult Validate(string? name, BotOptions options)
+        => ValidateCore(options, !environment.IsDevelopment() || options.PollingEnabled);
+
+    public ValidateOptionsResult ValidateForOpen(BotOptions options) => ValidateCore(options, true);
+
+    private static ValidateOptionsResult ValidateCore(BotOptions options, bool requireComplete)
     {
         var errors = new List<string>();
         if (string.IsNullOrWhiteSpace(options.DatabasePath) || options.DatabasePath == ":memory:")
@@ -20,7 +25,7 @@ public sealed class BotOptionsValidator(IHostEnvironment environment) : IValidat
         var chats = new[] { options.ModerationChatId, options.ArchiveChatId, options.AuditChatId };
         if (chats.Where(id => id != 0).Distinct().Count() != chats.Count(id => id != 0))
             errors.Add("Moderation, archive and audit chat IDs must differ.");
-        if (!environment.IsDevelopment())
+        if (requireComplete)
         {
             if (string.IsNullOrWhiteSpace(options.BotToken) || options.BotToken.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
                 errors.Add("Bot:BotToken must be provided via secrets/environment.");

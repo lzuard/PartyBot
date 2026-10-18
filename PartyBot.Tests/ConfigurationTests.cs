@@ -82,4 +82,18 @@ public sealed class ConfigurationTests
         Assert.Equal(42, reference.ChatId);
         Assert.Single(gateway.Sent);
     }
+    [Fact]
+    public void Offline_host_builds_without_a_telegram_client_or_delivery_workers()
+    {
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+        {
+            EnvironmentName = Environments.Development, ContentRootPath = AppContext.BaseDirectory
+        });
+        builder.Services.AddPartyBot(builder.Configuration, builder.Environment);
+        using var host = builder.Build();
+        Assert.False(host.Services.GetRequiredService<IOptions<BotOptions>>().Value.PollingEnabled);
+        Assert.Null(host.Services.GetService<ITelegramGateway>());
+        Assert.Empty(host.Services.GetServices<IHostedService>());
+    }
+
 }

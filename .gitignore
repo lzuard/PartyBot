@@ -16,3 +16,5 @@ appsettings.Local.json
 **/logs/
 **/photos/
 TestResults/
+
+*.db.lock

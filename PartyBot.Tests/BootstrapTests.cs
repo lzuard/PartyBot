@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Time.Testing;
 using PartyBot.Api.Persistence;
 
@@ -24,7 +26,7 @@ public sealed class BootstrapTests : IDisposable
         await using (var db = Open())
         {
             await new DatabaseBootstrap(db, time).InitializeAsync();
-            Assert.Single(await db.Database.GetAppliedMigrationsAsync());
+            Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
             Assert.Empty(await db.Database.GetPendingMigrationsAsync());
             Assert.False(db.Database.HasPendingModelChanges());
         }
@@ -47,6 +49,26 @@ public sealed class BootstrapTests : IDisposable
         await new DatabaseBootstrap(db, TimeProvider.System).InitializeAsync();
         db.BootstrapRecords.Add(new BootstrapRecord { Id = 2, CreatedAt = DateTimeOffset.UtcNow });
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Upgrade_from_stage_one_preserves_existing_bootstrap_record()
+    {
+        var createdAt = DateTimeOffset.Parse("2026-10-18T12:00:00Z");
+        await using (var db = Open())
+        {
+            await db.GetService<IMigrator>().MigrateAsync("20261018182102_InitialBootstrap");
+            db.BootstrapRecords.Add(new BootstrapRecord { CreatedAt = createdAt });
+            await db.SaveChangesAsync();
+        }
+        await using (var db = Open())
+        {
+            await new DatabaseBootstrap(db, TimeProvider.System).InitializeAsync();
+            Assert.Equal(createdAt, (await db.BootstrapRecords.SingleAsync()).CreatedAt);
+            Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
+            Assert.Empty(await db.Participants.ToListAsync());
+            Assert.Empty(await db.Games.ToListAsync());
+        }
     }
 
     public void Dispose() => Directory.Delete(directory, recursive: true);

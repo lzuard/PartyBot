@@ -31,3 +31,5 @@ README.md
 **/data
 **/logs
 **/photos
+
+**/*.db.lock
