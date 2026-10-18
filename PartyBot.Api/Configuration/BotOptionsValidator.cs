@@ -18,6 +18,12 @@ public sealed class BotOptionsValidator(IHostEnvironment environment) : IValidat
     private static ValidateOptionsResult ValidateCore(BotOptions options, bool requireComplete)
     {
         var errors = new List<string>();
+        if (options.AlbumDebounceSeconds is < 1 or > 30)
+            errors.Add("AlbumDebounceSeconds must be between 1 and 30.");
+        if (options.RejectReasons.Count == 0 || options.RejectReasons.Any(reason =>
+                reason.Key.Length is < 1 or > 16 || reason.Key.Any(c => !char.IsAsciiLetterOrDigit(c)) ||
+                string.IsNullOrWhiteSpace(reason.Value) || reason.Value.Length > 100))
+            errors.Add("Reject reasons need short ASCII IDs (1–16) and labels (1–100).");
         if (string.IsNullOrWhiteSpace(options.DatabasePath) || options.DatabasePath == ":memory:")
             errors.Add("Bot:DatabasePath must be a persistent file path.");
         if (string.IsNullOrWhiteSpace(options.CatalogPath))

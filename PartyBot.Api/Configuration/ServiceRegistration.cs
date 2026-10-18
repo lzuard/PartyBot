@@ -37,13 +37,16 @@ public static class ServiceRegistration
         services.AddScoped<CatalogBootstrap>();
         services.AddSingleton<CommandGate>();
         services.AddScoped<GameCommands>();
+        services.AddScoped<CandidateReadiness>();
         if (configuration.GetValue<bool>("Bot:PollingEnabled"))
         {
             services.AddScoped<ReplyDelivery>();
+            services.AddScoped<PhotoDelivery>();
             services.AddSingleton<ITelegramBotClient>(provider =>
                 new TelegramBotClient(provider.GetRequiredService<IOptions<BotOptions>>().Value.BotToken));
             services.AddSingleton<TelegramGateway>();
             services.AddSingleton<ITelegramGateway>(provider => provider.GetRequiredService<TelegramGateway>());
+            services.AddSingleton<IMediaTelegramGateway>(provider => provider.GetRequiredService<TelegramGateway>());
             services.AddSingleton<ITelegramUpdateSource>(provider => provider.GetRequiredService<TelegramGateway>());
             services.AddHostedService<PollingWorker>();
             services.AddHostedService<ReplyWorker>();

@@ -17,6 +17,47 @@ namespace PartyBot.Api.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
+            modelBuilder.Entity("PartyBot.Api.Domain.AnswerCandidate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("LastPartAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MediaGroupId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ParticipantId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ReadyAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("State")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId")
+                        .IsUnique()
+                        .HasFilter("State IN (0, 1)");
+
+                    b.HasIndex("ParticipantId", "MediaGroupId")
+                        .IsUnique()
+                        .HasFilter("MediaGroupId IS NOT NULL");
+
+                    b.ToTable("AnswerCandidates");
+                });
+
             modelBuilder.Entity("PartyBot.Api.Domain.Attempt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -48,6 +89,73 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.HasIndex("TaskId");
 
                     b.ToTable("Attempts");
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.CandidateMedia", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Caption")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileUniqueId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SourceChatId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SourceMessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CandidateId");
+
+                    b.HasIndex("SourceChatId", "SourceMessageId")
+                        .IsUnique();
+
+                    b.ToTable("CandidateMedia");
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.DeliveryMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ChatId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsWork")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.HasIndex("ChatId", "MessageId")
+                        .IsUnique();
+
+                    b.ToTable("DeliveryMessages");
                 });
 
             modelBuilder.Entity("PartyBot.Api.Domain.Game", b =>
@@ -123,6 +231,177 @@ namespace PartyBot.Api.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Participants");
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.RejectChoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SubmissionVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("RejectChoices");
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.ScoreEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ParticipantId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParticipantId");
+
+                    b.HasIndex("SubmissionId")
+                        .IsUnique();
+
+                    b.ToTable("ScoreEntries", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Score_Positive", "Points > 0");
+                        });
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.Submission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ArchiveCardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ArchiveChatId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AuthorSnapshot")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("DecidedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("ModeratorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ParticipantId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PointsSnapshot")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RejectReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("RepeatableSnapshot")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("SubmittedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TaskId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TextSnapshot")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("WorkCardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("WorkChatId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId")
+                        .IsUnique();
+
+                    b.HasIndex("ParticipantId");
+
+                    b.HasIndex("TaskId");
+
+                    b.ToTable("Submissions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Submission_Points", "PointsSnapshot > 0");
+                        });
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.SubmissionMedia", b =>
+                {
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ArchiveMessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CaptionSnapshot")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileUniqueId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SourceChatId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SourceMessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("WorkMessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SubmissionId", "Order");
+
+                    b.HasIndex("SourceChatId", "SourceMessageId")
+                        .IsUnique();
+
+                    b.ToTable("SubmissionMedia");
                 });
 
             modelBuilder.Entity("PartyBot.Api.Domain.TaskAvailability", b =>
@@ -206,6 +485,9 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.Property<int?>("ParticipantId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("SubmissionId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TaskId")
                         .HasColumnType("TEXT");
 
@@ -244,8 +526,23 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.Property<long>("ChatId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Done")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EntityVersion")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("Failed")
                         .HasColumnType("INTEGER");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LogicalKey")
                         .IsRequired()
@@ -259,6 +556,9 @@ namespace PartyBot.Api.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<long>("RetryAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("UseFileIds")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -300,6 +600,21 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.ToTable("ProcessedUpdates");
                 });
 
+            modelBuilder.Entity("PartyBot.Api.Domain.AnswerCandidate", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Attempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PartyBot.Api.Domain.Participant", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PartyBot.Api.Domain.Attempt", b =>
                 {
                     b.HasOne("PartyBot.Api.Domain.Participant", null)
@@ -312,6 +627,78 @@ namespace PartyBot.Api.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.CandidateMedia", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.AnswerCandidate", null)
+                        .WithMany("Media")
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.DeliveryMessage", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Submission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.RejectChoice", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Submission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.ScoreEntry", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Participant", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PartyBot.Api.Domain.Submission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.Submission", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Attempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PartyBot.Api.Domain.Participant", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PartyBot.Api.Domain.TaskDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.SubmissionMedia", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Submission", null)
+                        .WithMany("Media")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -342,9 +729,19 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.Navigation("Task");
                 });
 
+            modelBuilder.Entity("PartyBot.Api.Domain.AnswerCandidate", b =>
+                {
+                    b.Navigation("Media");
+                });
+
             modelBuilder.Entity("PartyBot.Api.Domain.Participant", b =>
                 {
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.Submission", b =>
+                {
+                    b.Navigation("Media");
                 });
 #pragma warning restore 612, 618
         }

@@ -31,7 +31,7 @@ public sealed class BootstrapTests : IDisposable
         await using (var db = Open())
         {
             await new DatabaseBootstrap(db, time).InitializeAsync();
-            Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
+            Assert.Equal(3, (await db.Database.GetAppliedMigrationsAsync()).Count());
             Assert.Empty(await db.Database.GetPendingMigrationsAsync());
             Assert.False(db.Database.HasPendingModelChanges());
         }
@@ -72,7 +72,7 @@ public sealed class BootstrapTests : IDisposable
         {
             await new DatabaseBootstrap(db, TimeProvider.System).InitializeAsync();
             Assert.Equal(createdAt, (await db.BootstrapRecords.SingleAsync()).CreatedAt);
-            Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
+            Assert.Equal(3, (await db.Database.GetAppliedMigrationsAsync()).Count());
             Assert.Empty(await db.Participants.ToListAsync());
             Assert.Empty(await db.Games.ToListAsync());
         }

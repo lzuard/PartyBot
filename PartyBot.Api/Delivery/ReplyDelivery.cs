@@ -19,7 +19,7 @@ public sealed class ReplyDelivery(
     {
         var now = time.GetUtcNow();
         var action = await db.OutgoingActions
-            .Where(item => !item.Failed && item.MessageId == null && item.RetryAt <= now)
+            .Where(item => item.Kind == DeliveryKind.Text && !item.Failed && item.MessageId == null && item.RetryAt <= now)
             .OrderBy(item => item.Id).FirstOrDefaultAsync(cancellationToken);
         if (action is null) return false;
         try

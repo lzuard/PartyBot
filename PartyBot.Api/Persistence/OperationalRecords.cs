@@ -8,6 +8,7 @@ public sealed class AuditEvent
     public int? ParticipantId { get; set; }
     public string? TaskId { get; set; }
     public Guid? AttemptId { get; set; }
+    public Guid? SubmissionId { get; set; }
     public string Action { get; set; } = "";
     public string? Data { get; set; }
 }
@@ -24,10 +25,17 @@ public sealed class PollingState
     public int? NextUpdateId { get; set; }
 }
 
-// Only text replies at stage 2; media delivery/dependencies are implemented in stage 3.
+public enum DeliveryKind { Text, CandidatePrompt, ArchiveMedia, ArchiveCard, WorkMedia, WorkCard, RefreshArchive, RefreshWork, CleanupWork, RejectPrompt }
+
 public sealed class OutgoingAction
 {
     public long Id { get; set; }
+    public DeliveryKind Kind { get; set; }
+    public Guid? EntityId { get; set; }
+    public int EntityVersion { get; set; }
+    public bool Done { get; set; }
+    public bool UseFileIds { get; set; }
+    public string? LastError { get; set; }
     public string LogicalKey { get; set; } = "";
     public long ChatId { get; set; }
     public string Payload { get; set; } = "";

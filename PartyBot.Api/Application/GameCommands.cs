@@ -26,10 +26,12 @@ public sealed class GameCommands(
             if (await db.ProcessedUpdates.AnyAsync(update => update.Id == command.UpdateId, cancellationToken))
                 return null;
             var game = await db.Games.SingleAsync(cancellationToken);
-            var reply = command.Kind == CommandKind.Ignore || !command.IsPrivate || command.ActorId <= 0 ||
-                        command.ChatId != command.ActorId
-                ? null
-                : await ApplyAsync(command, game, cancellationToken);
+            BotReply? reply;
+            if (PhotoCommands.IsModeration(command.Kind))
+                reply = await new PhotoCommands(db, time, options.Value).ModerateAsync(command, game, cancellationToken);
+            else
+                reply = command.Kind == CommandKind.Ignore || !command.IsPrivate || command.ActorId <= 0 || command.ChatId != command.ActorId
+                    ? null : await ApplyAsync(command, game, cancellationToken);
             var now = time.GetUtcNow();
             db.ProcessedUpdates.Add(new ProcessedUpdate { Id = command.UpdateId, ProcessedAt = now });
             (await db.PollingStates.SingleAsync(cancellationToken)).NextUpdateId = checked(command.UpdateId + 1);
@@ -49,7 +51,7 @@ public sealed class GameCommands(
         }
     }
 
-    private async Task<BotReply> ApplyAsync(BotCommand command, Game game, CancellationToken cancellationToken)
+    private async Task<BotReply?> ApplyAsync(BotCommand command, Game game, CancellationToken cancellationToken)
     {
         if (command.Kind is CommandKind.AskOpen or CommandKind.ConfirmOpen or CommandKind.CancelOpen)
             return await OpenAsync(command, game, cancellationToken);
@@ -102,6 +104,13 @@ public sealed class GameCommands(
         if (game.State != GameState.Open) return new BotReply("Игра сейчас закрыта для заданий.");
         if (participant.Disqualified) return new BotReply("Игровые действия недоступны: участник дисквалифицирован.");
         var active = participant.Tasks.SingleOrDefault(task => task.Location == TaskLocation.Active);
+        var photos = new PhotoCommands(db, time, options.Value);
+        if (command.Kind == CommandKind.UnsupportedMedia)
+            return await photos.UnsupportedAsync(command, participant, active, cancellationToken);
+        if (command.Kind == CommandKind.Photo)
+            return await photos.ReceiveAsync(command, participant, active, cancellationToken);
+        if (command.Kind is CommandKind.ConfirmAnswer or CommandKind.ReplaceAnswer)
+            return await photos.CandidateAsync(command, participant, active, game, cancellationToken);
         if (command.Kind == CommandKind.GetTask)
         {
             if (active is not null) return ActiveReply(active);
@@ -139,6 +148,7 @@ public sealed class GameCommands(
             var attempt = active.CurrentAttempt!;
             var now = time.GetUtcNow();
             if (!PersonalQueue.Skip(participant, attemptId, now)) return new BotReply("Эта попытка уже неактуальна.");
+            await photos.InvalidateAsync(attemptId, CandidateState.Cancelled, cancellationToken);
             participant.NextTaskAvailableAt = now.AddMinutes(game.SkipCooldownMinutes!.Value);
             participant.Version++;
             Audit(command, "TaskSkipped", participant, attempt);
@@ -206,7 +216,7 @@ public sealed class GameCommands(
     private static BotReply ActiveReply(TaskAvailability active)
     {
         return new BotReply(
-            $"Задание: {active.Task.Text}\nБаллы: {active.Task.Points}",
+            $"Задание: {active.Task.Text}\nБаллы: {active.Task.Points}\nПришли одну фотографию или один альбом. Фото видят организаторы и сохраняют в архиве для просмотра после вечеринки.",
             [[new BotButton("Моё задание", "show"), new BotButton("Пропустить", $"skip:{active.CurrentAttemptId:N}")]]);
     }
 }

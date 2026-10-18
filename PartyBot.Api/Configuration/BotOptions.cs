@@ -2,6 +2,14 @@ namespace PartyBot.Api.Configuration;
 
 public sealed class BotOptions
 {
+    public int AlbumDebounceSeconds { get; set; } = 2;
+    // Development wording placeholders; configure final reasons before the event.
+    public Dictionary<string, string> RejectReasons { get; set; } = new()
+    {
+        ["condition"] = "Условие задания не выполнено",
+        ["unclear"] = "Выполнение не видно на фото",
+        ["wrongtask"] = "Фото относится к другому заданию"
+    };
     public bool PollingEnabled { get; set; }
     public string BotToken { get; set; } = "";
     public long SuperAdminUserId { get; set; }
