@@ -7,8 +7,11 @@ public readonly record struct TelegramMessageReference(long ChatId, int MessageI
 
 public interface ITelegramGateway
 {
-    Task<TelegramMessageReference> SendTextAsync(long chatId, string text, CancellationToken cancellationToken = default);
-    Task<TelegramMessageReference> SendReplyAsync(long chatId, BotReply reply, CancellationToken cancellationToken = default);
+    Task<TelegramMessageReference> SendTextAsync(long chatId, string text,
+        CancellationToken cancellationToken = default);
+
+    Task<TelegramMessageReference> SendReplyAsync(long chatId, BotReply reply,
+        CancellationToken cancellationToken = default);
 }
 
 public interface ITelegramUpdateSource

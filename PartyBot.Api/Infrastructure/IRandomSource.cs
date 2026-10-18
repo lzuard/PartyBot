@@ -7,5 +7,8 @@ public interface IRandomSource
 
 public sealed class SystemRandomSource : IRandomSource
 {
-    public int Next(int exclusiveMax) => Random.Shared.Next(exclusiveMax);
+    public int Next(int exclusiveMax)
+    {
+        return Random.Shared.Next(exclusiveMax);
+    }
 }

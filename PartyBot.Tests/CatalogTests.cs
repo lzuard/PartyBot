@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PartyBot.Api.Application;
@@ -15,20 +14,23 @@ public sealed class CatalogTests
         await using var fixture = new GameFixture();
         fixture.Settings.CatalogPath = Path.Combine(fixture.DirectoryPath, "catalog.json");
         await File.WriteAllTextAsync(fixture.Settings.CatalogPath, """
-            { "demonstrationOnly": true, "tasks": [ { "stableId": "test", "text": "Demo", "repeatable": false } ] }
-            """);
+                                                                   { "demonstrationOnly": true, "tasks": [ { "stableId": "test", "text": "Demo", "repeatable": false } ] }
+                                                                   """);
         await using (var db = fixture.Open())
         {
             await new DatabaseBootstrap(db, fixture.Clock).InitializeAsync();
-            await new CatalogBootstrap(db, Options.Create(fixture.Settings), fixture.Environment, fixture.Clock).InitializeAsync();
+            await new CatalogBootstrap(db, Options.Create(fixture.Settings), fixture.Environment, fixture.Clock)
+                .InitializeAsync();
             Assert.Equal(1, (await db.TaskDefinitions.SingleAsync()).Points);
         }
+
         await fixture.RunAsync(CommandKind.Name, name: "Монстр");
         await fixture.OpenGameAsync();
         await File.WriteAllTextAsync(fixture.Settings.CatalogPath, "invalid JSON");
         await using (var db = fixture.Open())
         {
-            await new CatalogBootstrap(db, Options.Create(fixture.Settings), fixture.Environment, fixture.Clock).InitializeAsync();
+            await new CatalogBootstrap(db, Options.Create(fixture.Settings), fixture.Environment, fixture.Clock)
+                .InitializeAsync();
             Assert.Equal(GameState.Open, (await db.Games.SingleAsync()).State);
             Assert.Equal("Demo", (await db.TaskDefinitions.SingleAsync()).Text);
             Assert.Single(await db.TaskAvailabilities.ToListAsync());
@@ -39,11 +41,12 @@ public sealed class CatalogTests
     public void Catalog_rejects_duplicate_ids_nonpositive_points_empty_text_and_empty_list()
     {
         foreach (var tasks in new CatalogTask[][]
-        {
-            [], [new("same", "A"), new("same", "B")], [new("id", "A", 0)],
-            [new("id", "A", -1)], [new("id", "")], [new(" ", "A")]
-        })
-            Assert.Throws<InvalidOperationException>(() => CatalogBootstrap.Validate(new(false, tasks)));
+                 {
+                     [], [new CatalogTask("same", "A"), new CatalogTask("same", "B")], [new CatalogTask("id", "A", 0)],
+                     [new CatalogTask("id", "A", -1)], [new CatalogTask("id", "")], [new CatalogTask(" ", "A")]
+                 })
+            Assert.Throws<InvalidOperationException>(() =>
+                CatalogBootstrap.Validate(new CatalogDocument(false, tasks)));
     }
 
     [Fact]
@@ -57,6 +60,7 @@ public sealed class CatalogTests
             (await db.Games.SingleAsync()).DemonstrationCatalog = true;
             await db.SaveChangesAsync();
         }
+
         await fixture.OpenGameAsync();
         await using var actual = fixture.Open();
         Assert.Equal(GameState.Registration, (await actual.Games.SingleAsync()).State);

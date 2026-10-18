@@ -14,7 +14,7 @@ public sealed class GameCommandTests
         await fixture.InitializeAsync();
         await fixture.RunAsync(CommandKind.Start);
         await fixture.RunAsync(CommandKind.Name, name: "  Монстр  ");
-        await fixture.RunAsync(CommandKind.Name, actor: 101, name: "Монстр");
+        await fixture.RunAsync(CommandKind.Name, 101, "Монстр");
         await fixture.OpenGameAsync();
         await fixture.RunAsync(CommandKind.GetTask);
         var before = await fixture.ParticipantAsync();
@@ -58,11 +58,11 @@ public sealed class GameCommandTests
         await fixture.InitializeAsync();
         await fixture.OpenGameAsync();
         await fixture.RunAsync(CommandKind.Name, name: "Монстр");
-        await fixture.RunAsync(CommandKind.Name, actor: 101, name: "Чужой");
+        await fixture.RunAsync(CommandKind.Name, 101, "Чужой");
         await fixture.RunAsync(CommandKind.GetTask);
         var before = await fixture.ParticipantAsync();
         var activeId = before.Tasks.Single(t => t.Location == TaskLocation.Active).CurrentAttemptId!.Value;
-        await fixture.RunAsync(CommandKind.ConfirmSkip, actor: 101, attempt: activeId);
+        await fixture.RunAsync(CommandKind.ConfirmSkip, 101, attempt: activeId);
         await fixture.RunAsync(CommandKind.AskSkip, attempt: activeId);
         await fixture.RunAsync(CommandKind.CancelSkip, attempt: activeId);
         Assert.Null((await fixture.ParticipantAsync()).NextTaskAvailableAt);
@@ -84,7 +84,8 @@ public sealed class GameCommandTests
         var current = await fixture.ParticipantAsync();
         var newActive = current.Tasks.Single(t => t.Location == TaskLocation.Active).CurrentAttemptId;
         await fixture.RunAsync(CommandKind.ConfirmSkip, attempt: activeId);
-        Assert.Equal(newActive, (await fixture.ParticipantAsync()).Tasks.Single(t => t.Location == TaskLocation.Active).CurrentAttemptId);
+        Assert.Equal(newActive,
+            (await fixture.ParticipantAsync()).Tasks.Single(t => t.Location == TaskLocation.Active).CurrentAttemptId);
         await using var db = fixture.Open();
         Assert.Single(await db.AuditEvents.Where(e => e.Action == "TaskSkipped").ToListAsync());
         Assert.Single(await db.AuditEvents.Where(e => e.Action == "TaskReturnedToQueue").ToListAsync());
@@ -104,7 +105,8 @@ public sealed class GameCommandTests
         Assert.Single(await db.Participants.ToListAsync());
         Assert.Single(await db.Attempts.ToListAsync());
         Assert.Equal(3, await db.ProcessedUpdates.CountAsync(update => update.Id != 1));
-        Assert.Single(await db.OutgoingActions.Where(action => action.LogicalKey == $"update:{registration.UpdateId}:reply").ToListAsync());
+        Assert.Single(await db.OutgoingActions
+            .Where(action => action.LogicalKey == $"update:{registration.UpdateId}:reply").ToListAsync());
     }
 
     [Fact]
@@ -125,6 +127,7 @@ public sealed class GameCommandTests
             (await db.Participants.SingleAsync()).Disqualified = true;
             await db.SaveChangesAsync();
         }
+
         await fixture.RunAsync(CommandKind.GetTask);
         Assert.DoesNotContain((await fixture.ParticipantAsync()).Tasks, t => t.Location == TaskLocation.Active);
         foreach (var state in new[] { GameState.Review, GameState.Finished })
@@ -134,10 +137,12 @@ public sealed class GameCommandTests
                 (await db.Games.SingleAsync()).State = state;
                 await db.SaveChangesAsync();
             }
-            await fixture.RunAsync(CommandKind.Name, actor: 102, name: "Поздний");
+
+            await fixture.RunAsync(CommandKind.Name, 102, "Поздний");
             await fixture.RunAsync(CommandKind.Name, name: "Новое имя");
             await fixture.RunAsync(CommandKind.GetTask);
         }
+
         await using var final = fixture.Open();
         Assert.Single(await final.Participants.ToListAsync());
         Assert.Equal("Монстр", (await final.Participants.SingleAsync()).DisplayName);
@@ -149,16 +154,27 @@ public sealed class GameCommandTests
     {
         await using var fixture = new GameFixture();
         await fixture.InitializeAsync();
-        await fixture.RunAsync(CommandKind.ConfirmOpen, actor: 998, version: 0);
-        await fixture.ExecuteAsync(fixture.Command(CommandKind.ConfirmOpen, actor: 999, version: 0) with { ChatId = -1, IsPrivate = false });
-        await fixture.RunAsync(CommandKind.ConfirmOpen, actor: 999, version: 123);
-        await fixture.RunAsync(CommandKind.ConfirmOpen, actor: 999);
-        await fixture.RunAsync(CommandKind.AskOpen, actor: 999);
-        await fixture.RunAsync(CommandKind.CancelOpen, actor: 999, version: 0);
-        await using (var db = fixture.Open()) Assert.Equal(GameState.Registration, (await db.Games.SingleAsync()).State);
+        await fixture.RunAsync(CommandKind.ConfirmOpen, 998, version: 0);
+        await fixture.ExecuteAsync(fixture.Command(CommandKind.ConfirmOpen, 999, version: 0) with
+        {
+            ChatId = -1, IsPrivate = false
+        });
+        await fixture.RunAsync(CommandKind.ConfirmOpen, 999, version: 123);
+        await fixture.RunAsync(CommandKind.ConfirmOpen, 999);
+        await fixture.RunAsync(CommandKind.AskOpen, 999);
+        await fixture.RunAsync(CommandKind.CancelOpen, 999, version: 0);
+        await using (var db = fixture.Open())
+        {
+            Assert.Equal(GameState.Registration, (await db.Games.SingleAsync()).State);
+        }
+
         fixture.Settings.SkipCooldownMinutes = null;
         await fixture.OpenGameAsync();
-        await using (var db = fixture.Open()) Assert.Equal(GameState.Registration, (await db.Games.SingleAsync()).State);
+        await using (var db = fixture.Open())
+        {
+            Assert.Equal(GameState.Registration, (await db.Games.SingleAsync()).State);
+        }
+
         fixture.Settings.SkipCooldownMinutes = 1;
         await fixture.OpenGameAsync();
         await fixture.OpenGameAsync();
@@ -178,15 +194,22 @@ public sealed class GameCommandTests
         var participant = await fixture.ParticipantAsync();
         await using (var db = fixture.Open())
         {
-            db.Attempts.Add(new Attempt { ParticipantId = participant.Id, TaskId = participant.Tasks[0].TaskId, TakenAt = fixture.Clock.GetUtcNow() });
+            db.Attempts.Add(new Attempt
+            {
+                ParticipantId = participant.Id, TaskId = participant.Tasks[0].TaskId,
+                TakenAt = fixture.Clock.GetUtcNow()
+            });
             await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
         }
+
         await using (var db = fixture.Open())
         {
-            db.TaskAvailabilities.Add(new TaskAvailability { ParticipantId = participant.Id, TaskId = participant.Tasks[0].TaskId });
+            db.TaskAvailabilities.Add(new TaskAvailability
+                { ParticipantId = participant.Id, TaskId = participant.Tasks[0].TaskId });
             await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
         }
     }
+
     [Fact]
     public async Task Reply_record_failure_rolls_back_registration_audit_and_offset()
     {
@@ -195,9 +218,11 @@ public sealed class GameCommandTests
         var command = fixture.Command(CommandKind.Name, name: "Монстр");
         await using (var db = fixture.Open())
         {
-            db.OutgoingActions.Add(new OutgoingAction { LogicalKey = $"update:{command.UpdateId}:reply", ChatId = 100, Payload = "{}" });
+            db.OutgoingActions.Add(new OutgoingAction
+                { LogicalKey = $"update:{command.UpdateId}:reply", ChatId = 100, Payload = "{}" });
             await db.SaveChangesAsync();
         }
+
         await Assert.ThrowsAsync<DbUpdateException>(() => fixture.ExecuteAsync(command));
         await using var actual = fixture.Open();
         Assert.Empty(await actual.Participants.ToListAsync());
@@ -215,8 +240,10 @@ public sealed class GameCommandTests
         await fixture.OpenGameAsync();
         await fixture.RunAsync(CommandKind.Name, name: "Монстр");
         await fixture.RunAsync(CommandKind.GetTask);
-        var first = (await fixture.ParticipantAsync()).Tasks.Single(t => t.Location == TaskLocation.Active).CurrentAttemptId;
-        await Task.WhenAll(fixture.RunAsync(CommandKind.ConfirmSkip, attempt: first), fixture.RunAsync(CommandKind.ConfirmSkip, attempt: first));
+        var first = (await fixture.ParticipantAsync()).Tasks.Single(t => t.Location == TaskLocation.Active)
+            .CurrentAttemptId;
+        await Task.WhenAll(fixture.RunAsync(CommandKind.ConfirmSkip, attempt: first),
+            fixture.RunAsync(CommandKind.ConfirmSkip, attempt: first));
         Assert.Equal(6, PersonalQueue.Queued(await fixture.ParticipantAsync()).Length);
         fixture.Clock.Advance(TimeSpan.FromMinutes(1));
         await fixture.RunAsync(CommandKind.GetTask);
@@ -227,11 +254,11 @@ public sealed class GameCommandTests
             (await db.Games.SingleAsync()).State = GameState.Review;
             await db.SaveChangesAsync();
         }
+
         await fixture.RunAsync(CommandKind.ConfirmSkip, attempt: activeId);
         var after = await fixture.ParticipantAsync();
         Assert.Equal(activeId, after.Tasks.Single(t => t.Location == TaskLocation.Active).CurrentAttemptId);
         Assert.Equal(before.NextTaskAvailableAt, after.NextTaskAvailableAt);
         Assert.Equal(before.NextPosition, after.NextPosition);
     }
-
 }

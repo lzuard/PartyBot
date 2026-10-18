@@ -1,8 +1,23 @@
 {
   "demonstrationOnly": true,
   "tasks": [
-    { "stableId": "demo-1", "text": "ДЕМОНСТРАЦИЯ: покажите костюм монстра.", "points": 1, "repeatable": false },
-    { "stableId": "demo-2", "text": "ДЕМОНСТРАЦИЯ: придумайте страшную позу.", "points": 2, "repeatable": true },
-    { "stableId": "demo-6", "text": "ДЕМОНСТРАЦИЯ: соберите команду монстров.", "points": 6, "repeatable": false }
+    {
+      "stableId": "demo-1",
+      "text": "ДЕМОНСТРАЦИЯ: покажите костюм монстра.",
+      "points": 1,
+      "repeatable": false
+    },
+    {
+      "stableId": "demo-2",
+      "text": "ДЕМОНСТРАЦИЯ: придумайте страшную позу.",
+      "points": 2,
+      "repeatable": true
+    },
+    {
+      "stableId": "demo-6",
+      "text": "ДЕМОНСТРАЦИЯ: соберите команду монстров.",
+      "points": 6,
+      "repeatable": false
+    }
   ]
 }

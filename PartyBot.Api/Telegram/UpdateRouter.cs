@@ -1,7 +1,7 @@
 using PartyBot.Api.Application;
-using BotCommand = PartyBot.Api.Application.BotCommand;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using BotCommand = PartyBot.Api.Application.BotCommand;
 
 namespace PartyBot.Api.Telegram;
 
@@ -26,14 +26,18 @@ public static class UpdateRouter
                 if (parts.Length != 2 || !Guid.TryParseExact(parts[1], "N", out var parsed)) kind = CommandKind.Help;
                 else attemptId = parsed;
             }
+
             if (kind is CommandKind.ConfirmOpen or CommandKind.CancelOpen)
             {
                 if (parts.Length != 2 || !int.TryParse(parts[1], out var parsed)) kind = CommandKind.Help;
                 else version = parsed;
             }
-            return new(update.Id, callback.From.Id, message.Chat.Id, message.Chat.Type == ChatType.Private && !callback.From.IsBot,
+
+            return new BotCommand(update.Id, callback.From.Id, message.Chat.Id,
+                message.Chat.Type == ChatType.Private && !callback.From.IsBot,
                 kind, AttemptId: attemptId, GameVersion: version);
         }
+
         if (update.Message is { From: { IsBot: false } from, Text: { } text } input)
         {
             var parts = text.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
@@ -45,9 +49,10 @@ public static class UpdateRouter
                 "/skip" => CommandKind.AskSkip, "/open" => CommandKind.AskOpen,
                 _ => CommandKind.Help
             };
-            return new(update.Id, from.Id, input.Chat.Id, input.Chat.Type == ChatType.Private, kind,
-                Name: parts.Length == 2 ? parts[1] : null);
+            return new BotCommand(update.Id, from.Id, input.Chat.Id, input.Chat.Type == ChatType.Private, kind,
+                parts.Length == 2 ? parts[1] : null);
         }
-        return new(update.Id, 0, 0, false, CommandKind.Ignore);
+
+        return new BotCommand(update.Id, 0, 0, false, CommandKind.Ignore);
     }
 }

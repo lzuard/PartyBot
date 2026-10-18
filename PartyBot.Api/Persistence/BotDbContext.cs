@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using PartyBot.Api.Domain;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PartyBot.Api.Domain;
 
 namespace PartyBot.Api.Persistence;
 

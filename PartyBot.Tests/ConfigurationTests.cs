@@ -2,23 +2,25 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using PartyBot.Api.Configuration;
 using PartyBot.Api.Infrastructure;
 using PartyBot.Api.Telegram;
 using PartyBot.Tests.Fakes;
-using Microsoft.Extensions.Time.Testing;
 
 namespace PartyBot.Tests;
 
 public sealed class ConfigurationTests
 {
-    private static HostApplicationBuilder CreateBuilder(string environment) =>
-        Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+    private static HostApplicationBuilder CreateBuilder(string environment)
+    {
+        return Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
         {
             EnvironmentName = environment,
             ContentRootPath = AppContext.BaseDirectory,
             DisableDefaults = true
         });
+    }
 
     [Fact]
     public void Development_configuration_loads_placeholders_and_supports_test_overrides()
@@ -82,6 +84,7 @@ public sealed class ConfigurationTests
         Assert.Equal(42, reference.ChatId);
         Assert.Single(gateway.Sent);
     }
+
     [Fact]
     public void Offline_host_builds_without_a_telegram_client_or_delivery_workers()
     {
@@ -95,5 +98,4 @@ public sealed class ConfigurationTests
         Assert.Null(host.Services.GetService<ITelegramGateway>());
         Assert.Empty(host.Services.GetServices<IHostedService>());
     }
-
 }

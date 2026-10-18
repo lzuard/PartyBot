@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -12,12 +13,12 @@ public sealed class BotDbContextFactory : IDesignTimeDbContextFactory<BotDbConte
     {
         var root = AppContext.BaseDirectory;
         var configuration = new ConfigurationBuilder().SetBasePath(root)
-            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.json", true)
             .AddEnvironmentVariables().AddCommandLine(args).Build();
         var settings = configuration.GetSection("Bot").Get<BotOptions>() ?? new BotOptions();
         var path = Path.GetFullPath(settings.DatabasePath, root);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var connection = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
+        var connection = new SqliteConnectionStringBuilder
         {
             DataSource = path, ForeignKeys = true, DefaultTimeout = 30
         };

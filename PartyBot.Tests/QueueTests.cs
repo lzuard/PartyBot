@@ -7,12 +7,15 @@ namespace PartyBot.Tests;
 public sealed class QueueTests
 {
     private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-10-18T18:00:00Z");
-    private sealed class KeepOrderRandom : IRandomSource { public int Next(int exclusiveMax) => exclusiveMax - 1; }
 
-    internal static TaskDefinition[] Catalog(int cheap = 20, int medium = 5) =>
-        Enumerable.Range(1, cheap).Select(i => new TaskDefinition { Id = $"a{i:00}", Text = $"A{i}", Points = 1 })
-            .Concat(Enumerable.Range(1, medium).Select(i => new TaskDefinition { Id = $"b{i:00}", Text = $"B{i}", Points = 2 }))
+    internal static TaskDefinition[] Catalog(int cheap = 20, int medium = 5)
+    {
+        return Enumerable.Range(1, cheap)
+            .Select(i => new TaskDefinition { Id = $"a{i:00}", Text = $"A{i}", Points = 1 })
+            .Concat(Enumerable.Range(1, medium)
+                .Select(i => new TaskDefinition { Id = $"b{i:00}", Text = $"B{i}", Points = 2 }))
             .Append(new TaskDefinition { Id = "c01", Text = "C1", Points = 6, Repeatable = true }).ToArray();
+    }
 
     private static Participant Create(TaskDefinition[]? catalog = null)
     {
@@ -20,7 +23,12 @@ public sealed class QueueTests
         PersonalQueue.Initialize(participant, catalog ?? Catalog(), new KeepOrderRandom());
         return participant;
     }
-    private static string[] Queue(Participant participant) => PersonalQueue.Queued(participant).Select(task => task.TaskId).ToArray();
+
+    private static string[] Queue(Participant participant)
+    {
+        return PersonalQueue.Queued(participant).Select(task => task.TaskId).ToArray();
+    }
+
     private static Attempt TakeAndSubmit(Participant participant)
     {
         var attempt = PersonalQueue.Take(participant, Now)!;
@@ -86,10 +94,10 @@ public sealed class QueueTests
     {
         var participant = Create();
         var pending = Enumerable.Range(0, 3).Select(_ => TakeAndSubmit(participant)).ToArray();
-        foreach (var attempt in pending) Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, approved: false));
+        foreach (var attempt in pending) Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, false));
         Assert.Equal(8, Queue(participant).Length);
         Assert.Equal(pending.Select(attempt => attempt.TaskId), Queue(participant).TakeLast(3));
-        Assert.False(PersonalQueue.ResolvePending(participant, pending[0].Id, approved: false));
+        Assert.False(PersonalQueue.ResolvePending(participant, pending[0].Id, false));
         Assert.Equal(8, Queue(participant).Length);
     }
 
@@ -103,11 +111,11 @@ public sealed class QueueTests
         var before = Queue(participant);
         var cursor = participant.NextBucket;
         Assert.Equal("c01", repeatable.TaskId);
-        Assert.True(PersonalQueue.ResolvePending(participant, repeatable.Id, approved: true));
+        Assert.True(PersonalQueue.ResolvePending(participant, repeatable.Id, true));
         Assert.Equal(TaskLocation.Pool, participant.Tasks.Single(task => task.TaskId == "c01").Location);
         Assert.Equal(before, Queue(participant));
         Assert.Equal(cursor, participant.NextBucket);
-        Assert.False(PersonalQueue.ResolvePending(participant, repeatable.Id, approved: true));
+        Assert.False(PersonalQueue.ResolvePending(participant, repeatable.Id, true));
     }
 
     [Fact]
@@ -115,7 +123,7 @@ public sealed class QueueTests
     {
         var participant = Create(Catalog(0, 0));
         var attempt = TakeAndSubmit(participant);
-        Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, approved: true));
+        Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, true));
         Assert.Equal(["c01"], Queue(participant));
         var again = PersonalQueue.Take(participant, Now)!;
         Assert.NotEqual(attempt.Id, again.Id);
@@ -127,10 +135,10 @@ public sealed class QueueTests
     {
         var participant = Create([new TaskDefinition { Id = "once", Text = "one", Points = 1 }]);
         var attempt = TakeAndSubmit(participant);
-        Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, approved: false));
+        Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, false));
         var again = TakeAndSubmit(participant);
         Assert.NotEqual(attempt.Id, again.Id);
-        Assert.True(PersonalQueue.ResolvePending(participant, again.Id, approved: true));
+        Assert.True(PersonalQueue.ResolvePending(participant, again.Id, true));
         Assert.Null(PersonalQueue.Take(participant, Now));
         Assert.Equal(TaskLocation.Consumed, Assert.Single(participant.Tasks).Location);
     }
@@ -144,19 +152,27 @@ public sealed class QueueTests
         Assert.True(PersonalQueue.Skip(participant, attempt.Id, Now));
         Assert.Equal(["c01", "a01"], Queue(participant));
     }
+
     [Fact]
     public void Repeatable_returns_to_tail_of_its_own_pool_without_reordering_other_tasks()
     {
-        var catalog = Catalog(12, 5);
+        var catalog = Catalog(12);
         catalog[0].Repeatable = true;
         var participant = Create(catalog);
         var attempt = TakeAndSubmit(participant);
         var remainingPool = participant.Tasks.Where(t => t.Location == TaskLocation.Pool && t.Task.Points == 1)
             .OrderBy(t => t.Position).Select(t => t.TaskId).ToArray();
-        Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, approved: true));
+        Assert.True(PersonalQueue.ResolvePending(participant, attempt.Id, true));
         var returnedPool = participant.Tasks.Where(t => t.Location == TaskLocation.Pool && t.Task.Points == 1)
             .OrderBy(t => t.Position).Select(t => t.TaskId).ToArray();
         Assert.Equal(remainingPool.Append(attempt.TaskId), returnedPool);
     }
 
+    private sealed class KeepOrderRandom : IRandomSource
+    {
+        public int Next(int exclusiveMax)
+        {
+            return exclusiveMax - 1;
+        }
+    }
 }

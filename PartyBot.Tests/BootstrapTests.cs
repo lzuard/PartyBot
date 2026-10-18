@@ -10,6 +10,11 @@ public sealed class BootstrapTests : IDisposable
 {
     private readonly string directory = Path.Combine(Path.GetTempPath(), "partybot-tests-" + Guid.NewGuid());
 
+    public void Dispose()
+    {
+        Directory.Delete(directory, true);
+    }
+
     private BotDbContext Open()
     {
         Directory.CreateDirectory(directory);
@@ -30,6 +35,7 @@ public sealed class BootstrapTests : IDisposable
             Assert.Empty(await db.Database.GetPendingMigrationsAsync());
             Assert.False(db.Database.HasPendingModelChanges());
         }
+
         time.Advance(TimeSpan.FromHours(1));
         await using (var db = Open())
         {
@@ -61,6 +67,7 @@ public sealed class BootstrapTests : IDisposable
             db.BootstrapRecords.Add(new BootstrapRecord { CreatedAt = createdAt });
             await db.SaveChangesAsync();
         }
+
         await using (var db = Open())
         {
             await new DatabaseBootstrap(db, TimeProvider.System).InitializeAsync();
@@ -70,6 +77,4 @@ public sealed class BootstrapTests : IDisposable
             Assert.Empty(await db.Games.ToListAsync());
         }
     }
-
-    public void Dispose() => Directory.Delete(directory, recursive: true);
 }

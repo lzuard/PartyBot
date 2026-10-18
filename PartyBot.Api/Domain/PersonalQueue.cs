@@ -17,6 +17,7 @@ public static class PersonalQueue
                 var j = random.Next(i + 1);
                 (tasks[i], tasks[j]) = (tasks[j], tasks[i]);
             }
+
             foreach (var task in tasks)
                 participant.Tasks.Add(new TaskAvailability
                 {
@@ -24,12 +25,16 @@ public static class PersonalQueue
                     Location = TaskLocation.Pool, Position = participant.NextPosition++
                 });
         }
+
         participant.NextBucket = catalog.Select(task => task.Points).DefaultIfEmpty(0).Min();
         Refill(participant);
     }
 
-    public static TaskAvailability[] Queued(Participant participant) => participant.Tasks
-        .Where(task => task.Location == TaskLocation.Queue).OrderBy(task => task.Position).ToArray();
+    public static TaskAvailability[] Queued(Participant participant)
+    {
+        return participant.Tasks
+            .Where(task => task.Location == TaskLocation.Queue).OrderBy(task => task.Position).ToArray();
+    }
 
     public static void Refill(Participant participant)
     {
@@ -44,10 +49,12 @@ public static class PersonalQueue
             for (var offset = 0; offset < buckets.Length; offset++)
             {
                 selectedIndex = (start + offset) % buckets.Length;
-                selected = participant.Tasks.Where(task => task.Location == TaskLocation.Pool && task.Task.Points == buckets[selectedIndex])
+                selected = participant.Tasks.Where(task =>
+                        task.Location == TaskLocation.Pool && task.Task.Points == buckets[selectedIndex])
                     .OrderBy(task => task.Position).FirstOrDefault();
                 if (selected is not null) break;
             }
+
             if (selected is null) return;
             Move(participant, selected, TaskLocation.Queue);
             start = (selectedIndex + 1) % buckets.Length;
@@ -72,7 +79,8 @@ public static class PersonalQueue
 
     public static bool Skip(Participant participant, Guid attemptId, DateTimeOffset now)
     {
-        var active = participant.Tasks.SingleOrDefault(task => task.Location == TaskLocation.Active && task.CurrentAttemptId == attemptId);
+        var active = participant.Tasks.SingleOrDefault(task =>
+            task.Location == TaskLocation.Active && task.CurrentAttemptId == attemptId);
         if (active is null) return false;
         active.CurrentAttempt!.State = AttemptState.Skipped;
         active.CurrentAttempt.EndedAt = now;
@@ -83,7 +91,8 @@ public static class PersonalQueue
     // Queue primitives for stage 3. No moderation or scoring workflow is exposed here.
     public static bool MarkPending(Participant participant, Guid attemptId, DateTimeOffset now)
     {
-        var active = participant.Tasks.SingleOrDefault(task => task.Location == TaskLocation.Active && task.CurrentAttemptId == attemptId);
+        var active = participant.Tasks.SingleOrDefault(task =>
+            task.Location == TaskLocation.Active && task.CurrentAttemptId == attemptId);
         if (active is null) return false;
         active.CurrentAttempt!.State = AttemptState.Submitted;
         active.CurrentAttempt.EndedAt = now;
@@ -94,9 +103,11 @@ public static class PersonalQueue
 
     public static bool ResolvePending(Participant participant, Guid attemptId, bool approved)
     {
-        var pending = participant.Tasks.SingleOrDefault(task => task.Location == TaskLocation.Pending && task.CurrentAttemptId == attemptId);
+        var pending = participant.Tasks.SingleOrDefault(task =>
+            task.Location == TaskLocation.Pending && task.CurrentAttemptId == attemptId);
         if (pending is null) return false;
-        Return(participant, pending, !approved ? TaskLocation.Queue : pending.Task.Repeatable ? TaskLocation.Pool : TaskLocation.Consumed);
+        Return(participant, pending,
+            !approved ? TaskLocation.Queue : pending.Task.Repeatable ? TaskLocation.Pool : TaskLocation.Consumed);
         return true;
     }
 

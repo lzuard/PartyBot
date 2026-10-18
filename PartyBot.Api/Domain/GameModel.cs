@@ -1,8 +1,28 @@
 namespace PartyBot.Api.Domain;
 
-public enum GameState { Registration, Open, Review, Finished }
-public enum AttemptState { Active, Skipped, Submitted }
-public enum TaskLocation { Pool, Queue, Active, Pending, Consumed }
+public enum GameState
+{
+    Registration,
+    Open,
+    Review,
+    Finished
+}
+
+public enum AttemptState
+{
+    Active,
+    Skipped,
+    Submitted
+}
+
+public enum TaskLocation
+{
+    Pool,
+    Queue,
+    Active,
+    Pending,
+    Consumed
+}
 
 public sealed class Game
 {

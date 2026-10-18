@@ -27,8 +27,10 @@ internal static class GameModelConfiguration
         model.Entity<Attempt>(entity =>
         {
             entity.HasIndex(attempt => attempt.ParticipantId).IsUnique().HasFilter("State = 0");
-            entity.HasOne<Participant>().WithMany().HasForeignKey(attempt => attempt.ParticipantId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<TaskDefinition>().WithMany().HasForeignKey(attempt => attempt.TaskId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Participant>().WithMany().HasForeignKey(attempt => attempt.ParticipantId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<TaskDefinition>().WithMany().HasForeignKey(attempt => attempt.TaskId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasAlternateKey(attempt => new { attempt.Id, attempt.ParticipantId, attempt.TaskId });
         });
         model.Entity<TaskAvailability>(entity =>
@@ -36,10 +38,12 @@ internal static class GameModelConfiguration
             entity.HasKey(task => new { task.ParticipantId, task.TaskId });
             entity.HasOne(task => task.Participant).WithMany(participant => participant.Tasks)
                 .HasForeignKey(task => task.ParticipantId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(task => task.Task).WithMany().HasForeignKey(task => task.TaskId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(task => task.Task).WithMany().HasForeignKey(task => task.TaskId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(task => task.CurrentAttempt).WithMany()
                 .HasForeignKey(task => new { task.CurrentAttemptId, task.ParticipantId, task.TaskId })
-                .HasPrincipalKey(attempt => new { attempt.Id, attempt.ParticipantId, attempt.TaskId }).OnDelete(DeleteBehavior.Restrict);
+                .HasPrincipalKey(attempt => new { attempt.Id, attempt.ParticipantId, attempt.TaskId })
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(task => task.ParticipantId).IsUnique().HasFilter("Location = 2");
             entity.ToTable("TaskAvailabilities", table => table.HasCheckConstraint("CK_Availability_Attempt",
                 "(Location IN (2, 3) AND CurrentAttemptId IS NOT NULL) OR (Location IN (0, 1, 4) AND CurrentAttemptId IS NULL)"));
