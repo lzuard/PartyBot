@@ -3,3 +3,16 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+.DS_Store
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+.env
+.env.*
+appsettings.Local.json
+**/data/
+**/logs/
+**/photos/
+TestResults/
