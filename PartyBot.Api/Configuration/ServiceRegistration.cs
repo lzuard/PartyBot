@@ -38,6 +38,7 @@ public static class ServiceRegistration
         services.AddSingleton<CommandGate>();
         services.AddScoped<GameCommands>();
         services.AddScoped<CandidateReadiness>();
+        services.AddScoped<AuditProjection>();
         if (configuration.GetValue<bool>("Bot:PollingEnabled"))
         {
             services.AddScoped<ReplyDelivery>();

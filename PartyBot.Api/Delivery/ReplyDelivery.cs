@@ -33,6 +33,7 @@ public sealed class ReplyDelivery(
                                       (error is OperationCanceledException &&
                                        !cancellationToken.IsCancellationRequested))
         {
+            action.LastError = error is ApiRequestException api ? $"Telegram {api.ErrorCode}" : error.GetType().Name;
             action.Attempts++;
             action.Failed = error is ApiRequestException { ErrorCode: 400 or 401 or 403 };
             var delay = error is ApiRequestException { Parameters.RetryAfter: { } retryAfter }

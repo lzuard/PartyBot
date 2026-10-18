@@ -13,6 +13,7 @@ public enum CommandKind
     AskOpen,
     ConfirmOpen,
     CancelOpen,
+    Leaderboard, Admin, AdminParticipant, AskDisqualify, AskReinstate, ConfirmDiscipline, CancelDiscipline,
     Help, UnsupportedMedia, Photo, ConfirmAnswer, ReplaceAnswer, Approve, AskReject, ConfirmReject, CancelReject
 }
 
@@ -28,13 +29,13 @@ public sealed record BotCommand(
     Guid? EntityId = null,
     int? EntityVersion = null,
     string? ReasonId = null,
-    IncomingPhoto? Photo = null, string? UnsupportedGroupId = null);
+    IncomingPhoto? Photo = null, string? UnsupportedGroupId = null, int? ParticipantId = null, int Page = 0);
 
 public sealed record IncomingPhoto(int MessageId, string FileId, string FileUniqueId, string? MediaGroupId = null, string? Caption = null);
 
 public sealed record BotButton(string Text, string Data);
 
-public sealed record BotReply(string Text, BotButton[][]? Buttons = null, int? ReplyToMessageId = null);
+public sealed record BotReply(string Text, BotButton[][]? Buttons = null, int? ReplyToMessageId = null, int? MessageThreadId = null);
 
 // One process, one business command at a time, including future game-state transitions.
 public sealed class CommandGate : IDisposable

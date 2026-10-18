@@ -53,6 +53,10 @@ public sealed class GameCommands(
 
     private async Task<BotReply?> ApplyAsync(BotCommand command, Game game, CancellationToken cancellationToken)
     {
+        if (command.Kind == CommandKind.Leaderboard)
+            return await new Leaderboard(db).ReplyAsync(game, command.ActorId, cancellationToken);
+        if (AdminCommands.Handles(command.Kind))
+            return await new AdminCommands(db, time, options.Value).ApplyAsync(command, game, cancellationToken);
         if (command.Kind is CommandKind.AskOpen or CommandKind.ConfirmOpen or CommandKind.CancelOpen)
             return await OpenAsync(command, game, cancellationToken);
         var participant = await db.Participants.Include(person => person.Tasks).ThenInclude(task => task.Task)
@@ -100,7 +104,7 @@ public sealed class GameCommands(
 
         if (participant is null) return new BotReply("Сначала зарегистрируйся: /start.");
         if (command.Kind == CommandKind.Help)
-            return Menu(participant, game, "Команды: /task, /mytask, /skip, /name Новое имя.");
+            return Menu(participant, game, "Команды: /task, /mytask, /skip, /rank, /name Новое имя.");
         if (game.State != GameState.Open) return new BotReply("Игра сейчас закрыта для заданий.");
         if (participant.Disqualified) return new BotReply("Игровые действия недоступны: участник дисквалифицирован.");
         var active = participant.Tasks.SingleOrDefault(task => task.Location == TaskLocation.Active);
@@ -198,18 +202,18 @@ public sealed class GameCommands(
     private static BotReply Menu(Participant participant, Game game, string text)
     {
         return new BotReply(text + (game.State == GameState.Open ? "" : " Игра сейчас закрыта для заданий."),
-            game.State == GameState.Open ? MenuButtons(participant) : null);
+            game.State == GameState.Open && !participant.Disqualified ? MenuButtons(participant) : [[new("Рейтинг", "rank")]]);
     }
 
     private static BotButton[][] GetButtons()
     {
-        return [[new BotButton("Получить задание", "get")]];
+        return [[new BotButton("Получить задание", "get")], [new("Рейтинг", "rank")]];
     }
 
     private static BotButton[][] MenuButtons(Participant participant)
     {
         return participant.Tasks.SingleOrDefault(task => task.Location == TaskLocation.Active) is { } active
-            ? [[new BotButton("Моё задание", "show"), new BotButton("Пропустить", $"skip:{active.CurrentAttemptId:N}")]]
+            ? [[new BotButton("Моё задание", "show"), new BotButton("Пропустить", $"skip:{active.CurrentAttemptId:N}")], [new("Рейтинг", "rank")]]
             : GetButtons();
     }
 
@@ -217,6 +221,6 @@ public sealed class GameCommands(
     {
         return new BotReply(
             $"Задание: {active.Task.Text}\nБаллы: {active.Task.Points}\nПришли одну фотографию или один альбом. Фото видят организаторы и сохраняют в архиве для просмотра после вечеринки.",
-            [[new BotButton("Моё задание", "show"), new BotButton("Пропустить", $"skip:{active.CurrentAttemptId:N}")]]);
+            [[new BotButton("Моё задание", "show"), new BotButton("Пропустить", $"skip:{active.CurrentAttemptId:N}")], [new("Рейтинг", "rank")]]);
     }
 }

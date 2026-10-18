@@ -10,6 +10,8 @@ public sealed class ReplyWorker(IServiceScopeFactory scopes, TimeProvider time) 
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            await using (var auditScope = scopes.CreateAsyncScope())
+                await auditScope.ServiceProvider.GetRequiredService<AuditProjection>().EnqueueAsync(stoppingToken);
             await using var scope = scopes.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<CandidateReadiness>().ProcessAsync(stoppingToken);
             var textSent = await scope.ServiceProvider.GetRequiredService<ReplyDelivery>().DeliverNextAsync(stoppingToken);

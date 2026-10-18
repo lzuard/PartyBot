@@ -29,7 +29,7 @@ public sealed class TelegramGateway(ITelegramBotClient client) : ITelegramGatewa
                     row.Select(button => InlineKeyboardButton.WithCallbackData(button.Text, button.Data))))
                 : null;
             // Plain text (no parse mode): participant names and catalog text cannot inject markup.
-            message = await client.SendMessage(chatId, text[..length], replyMarkup: keyboard,
+            message = await client.SendMessage(chatId, text[..length], replyMarkup: keyboard, messageThreadId: reply.MessageThreadId,
                 replyParameters: reply.ReplyToMessageId is { } sourceId ? new ReplyParameters { MessageId = sourceId, AllowSendingWithoutReply = true } : null,
                 cancellationToken: cancellationToken);
             text = text[length..];

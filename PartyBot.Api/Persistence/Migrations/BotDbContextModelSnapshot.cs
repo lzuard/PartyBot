@@ -514,6 +514,41 @@ namespace PartyBot.Api.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PartyBot.Api.Persistence.DisciplineRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Disqualify")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GameVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ParticipantId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ParticipantVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParticipantId");
+
+                    b.ToTable("DisciplineRequests");
+                });
+
             modelBuilder.Entity("PartyBot.Api.Persistence.OutgoingAction", b =>
                 {
                     b.Property<long>("Id")
@@ -727,6 +762,15 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.Navigation("Participant");
 
                     b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Persistence.DisciplineRequest", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Participant", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PartyBot.Api.Domain.AnswerCandidate", b =>

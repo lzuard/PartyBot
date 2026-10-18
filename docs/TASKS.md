@@ -82,9 +82,28 @@
 
 Ограничения: ручная Telegram-репетиция и Docker build не выполнялись; сообщения реальным пользователям не отправлялись. Доставка Telegram не exactly-once. Постоянные ошибки сохраняются в БД; управляемое восстановление и диагностика — этап 6. Рейтинг, панели и проекция бизнес-журнала — следующий этап 4; закрытие и финал — этап 5.
 
-## 4. Рейтинг, панели и аудит — TODO
+## 4. Рейтинг, панели и аудит — DONE (2026-10-19)
 
 Рейтинг и tie-break, личное место, суперадмин-панель, DQ/Reinstate, отдельная проекция бизнес-журнала. Проверить запреты доступа и сохранение истории. Важные события уже должны записываться на этапах 2–3; здесь завершается удобное отображение.
+
+Выполнено:
+
+- `/rank` и кнопки рейтинга: топ-10 и собственное место по сумме Approved snapshots, max(SubmittedAt), стабильному ID. Pending/Rejected/Unreviewed исключены, нулевые результаты устойчивы, DQ без места.
+- Личная `/admin` суперадмина: состояние игры, страницы участников по 10, выбор по имени/номеру, открытие Registration-игры через существующее подтверждение.
+- `/dq НОМЕР ПРИЧИНА` и `/reinstate НОМЕР ПРИЧИНА` из карточки, затем Да/Нет. Persisted DisciplineRequest проверяет actor/chat, версии и однократность. Очередь, Active, кандидат, история, баллы и кулдаун сохраняются. Finished запрещает изменения.
+- Отдельная проекция AuditEvent в AuditChatId/AuditThreadId, replay существующей истории, уникальные logical keys, retry/постоянные ошибки и уведомления суперадмину. Бизнес-события не изменяются; сбой Telegram не откатывает бизнес-операцию. В события начисления добавлена сумма награды.
+- Миграция RankingPanelsAudit добавляет подтверждения дисциплинарных действий; старые данные сохраняются.
+
+Проверки из корня репозитория:
+
+- `dotnet test PartyBot.slnx --no-restore -p:UseSharedCompilation=false` — 89/89, без пропусков и предупреждений. Добавлены рейтинг/tie-break/top-10/нулевые результаты, DQ и восстановление с Pending-модерацией, запреты ролей/чатов/Finished, повторные и устаревшие подтверждения, отмена, откат транзакции DQ, сохранение Active/кандидата, пагинация и маршрутизация панели, проекция истории/темы/retry/ошибка журнала, миграция этапа 3.
+- `dotnet build PartyBot.slnx --no-restore -p:UseSharedCompilation=false` — 0 предупреждений, 0 ошибок.
+- `dotnet ef migrations has-pending-model-changes --project PartyBot.Api --no-build` — модель соответствует миграциям.
+- `dotnet run --project PartyBot.Api --launch-profile Bootstrap --no-build -- --migrate-only --Bot:DatabasePath=/tmp/partybot-stage4-smoke-76ba9b41.db --Bot:PollingEnabled=false` — четыре миграции новой SQLite, exit 0.
+- `dotnet run --project PartyBot.Api --launch-profile Bootstrap --no-build -- --Bot:DatabasePath=/tmp/partybot-stage4-smoke-76ba9b41.db --Bot:PollingEnabled=false` — host запущен, Registration и 3 demo-задания; остановлен Ctrl+C. SQLite foreign_key_check пуст.
+- `git diff --check` — успешно.
+
+Ограничения: Telegram API не вызывался, ручная репетиция и Docker build не выполнялись. Создание/чтение итогового snapshot и штатные переходы Review/Finished остаются этапу 5; при внешнем Finished живой рейтинг не подменяет отсутствующий снимок. Управляемое восстановление постоянных ошибок — этап 6. Новые технические решения и команды описаны в DECISIONS/README.
 
 ## 5. Подсчёт и финал — TODO
 

@@ -13,6 +13,20 @@ public static class UpdateRouter
         {
             if (callback.From.IsBot) return new BotCommand(update.Id, 0, 0, false, CommandKind.Ignore);
             var parts = data.Split(':');
+            if (parts[0] is "admin" or "person" or "disciplineyes" or "disciplineno")
+            {
+                if (parts.Length != 2) return new(update.Id, 0, 0, false, CommandKind.Ignore);
+                var kindAdmin = parts[0] switch { "admin" => CommandKind.Admin, "person" => CommandKind.AdminParticipant,
+                    "disciplineyes" => CommandKind.ConfirmDiscipline, _ => CommandKind.CancelDiscipline };
+                int number = 0;
+                Guid request = default;
+                if (kindAdmin is CommandKind.Admin or CommandKind.AdminParticipant
+                    ? !int.TryParse(parts[1], out number) || number < 0
+                    : !Guid.TryParseExact(parts[1], "N", out request))
+                    return new(update.Id, 0, 0, false, CommandKind.Ignore);
+                return new(update.Id, callback.From.Id, message.Chat.Id, message.Chat.Type == ChatType.Private,
+                    kindAdmin, EntityId: request, ParticipantId: number, Page: number);
+            }
             var photoKind = parts[0] switch
             {
                 "confirm" => CommandKind.ConfirmAnswer, "replace" => CommandKind.ReplaceAnswer,
@@ -34,6 +48,7 @@ public static class UpdateRouter
 
             var kind = parts[0] switch
             {
+                "rank" => CommandKind.Leaderboard, "open" => CommandKind.AskOpen,
                 "get" => CommandKind.GetTask, "show" => CommandKind.ShowTask,
                 "skip" => CommandKind.AskSkip, "skipyes" => CommandKind.ConfirmSkip, "skipno" => CommandKind.CancelSkip,
                 "openyes" => CommandKind.ConfirmOpen, "openno" => CommandKind.CancelOpen,
@@ -74,6 +89,8 @@ public static class UpdateRouter
             var command = parts.FirstOrDefault()?.Split('@')[0].ToLowerInvariant();
             var kind = command switch
             {
+                "/rank" => CommandKind.Leaderboard, "/admin" => CommandKind.Admin,
+                "/dq" => CommandKind.AskDisqualify, "/reinstate" => CommandKind.AskReinstate,
                 "/start" => CommandKind.Start, "/name" => CommandKind.Name,
                 "/task" => CommandKind.GetTask, "/mytask" => CommandKind.ShowTask,
                 "/skip" => CommandKind.AskSkip, "/open" => CommandKind.AskOpen,

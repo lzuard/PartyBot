@@ -8,6 +8,7 @@ public sealed class BotDbContext(DbContextOptions<BotDbContext> options) : DbCon
 {
     public DbSet<BootstrapRecord> BootstrapRecords => Set<BootstrapRecord>();
 
+    public DbSet<DisciplineRequest> DisciplineRequests => Set<DisciplineRequest>();
     public DbSet<Game> Games => Set<Game>();
     public DbSet<TaskDefinition> TaskDefinitions => Set<TaskDefinition>();
     public DbSet<Participant> Participants => Set<Participant>();
@@ -33,6 +34,7 @@ public sealed class BotDbContext(DbContextOptions<BotDbContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<DisciplineRequest>().HasOne<Participant>().WithMany().HasForeignKey(r => r.ParticipantId).OnDelete(DeleteBehavior.Restrict);
         GameModelConfiguration.Configure(modelBuilder);
         AnswerModelConfiguration.Configure(modelBuilder);
         modelBuilder.Entity<BootstrapRecord>(entity =>

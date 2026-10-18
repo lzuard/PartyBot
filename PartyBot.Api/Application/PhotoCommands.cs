@@ -164,7 +164,7 @@ public sealed class PhotoCommands(BotDbContext db, TimeProvider time, BotOptions
         if (approved)
         {
             db.ScoreEntries.Add(new ScoreEntry { SubmissionId = submission.Id, ParticipantId = participant.Id, Points = submission.PointsSnapshot, CreatedAt = submission.DecidedAt.Value });
-            Audit(command, submission, "ScoreAwarded");
+            Audit(command, submission, "ScoreAwarded", $"Points: {submission.PointsSnapshot}");
         }
         Audit(command, submission, approved ? "SubmissionApproved" : "SubmissionRejected", reasonText);
         if (!approved || submission.RepeatableSnapshot)
