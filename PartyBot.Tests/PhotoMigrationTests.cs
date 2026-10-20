@@ -18,7 +18,7 @@ public sealed class PhotoMigrationTests
         await using (var db = f.Open())
         {
             await db.GetService<IMigrator>().MigrateAsync("20261018183844_GameQueueRegistration");
-            db.Games.Add(new Game { State = GameState.Open, SkipCooldownMinutes = 1, SubmitCooldownMinutes = 1 });
+            await db.Database.ExecuteSqlRawAsync("INSERT INTO Games (Id, State, Version, DemonstrationCatalog, SkipCooldownMinutes, SubmitCooldownMinutes) VALUES (1, 1, 0, 0, 1, 1)");
             var tasks = QueueTests.Catalog();
             db.TaskDefinitions.AddRange(tasks);
             var participant = new Participant { TelegramUserId = 100, PrivateChatId = 100, DisplayName = "Old" };

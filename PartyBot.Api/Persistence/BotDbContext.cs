@@ -9,6 +9,9 @@ public sealed class BotDbContext(DbContextOptions<BotDbContext> options) : DbCon
     public DbSet<BootstrapRecord> BootstrapRecords => Set<BootstrapRecord>();
 
     public DbSet<DisciplineRequest> DisciplineRequests => Set<DisciplineRequest>();
+    public DbSet<RecoveryRequest> RecoveryRequests => Set<RecoveryRequest>();
+    public DbSet<TransitionRequest> TransitionRequests => Set<TransitionRequest>();
+    public DbSet<FinalStanding> FinalStandings => Set<FinalStanding>();
     public DbSet<Game> Games => Set<Game>();
     public DbSet<TaskDefinition> TaskDefinitions => Set<TaskDefinition>();
     public DbSet<Participant> Participants => Set<Participant>();
@@ -35,6 +38,15 @@ public sealed class BotDbContext(DbContextOptions<BotDbContext> options) : DbCon
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<DisciplineRequest>().HasOne<Participant>().WithMany().HasForeignKey(r => r.ParticipantId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<FinalStanding>(entity =>
+        {
+            entity.HasKey(r => new { r.GameId, r.ParticipantId });
+            entity.HasOne<Game>().WithMany().HasForeignKey(r => r.GameId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Participant>().WithMany().HasForeignKey(r => r.ParticipantId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(r => new { r.GameId, r.Rank }).IsUnique().HasFilter("Rank IS NOT NULL");
+            entity.HasIndex(r => new { r.GameId, r.TelegramUserId }).IsUnique();
+        });
+        modelBuilder.Entity<RecoveryRequest>().HasOne<OutgoingAction>().WithMany().HasForeignKey(r => r.ActionId).OnDelete(DeleteBehavior.Restrict);
         GameModelConfiguration.Configure(modelBuilder);
         AnswerModelConfiguration.Configure(modelBuilder);
         modelBuilder.Entity<BootstrapRecord>(entity =>

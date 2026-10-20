@@ -44,7 +44,7 @@ public sealed class PhotoDelivery(BotDbContext db, CommandGate gate, IMediaTeleg
                     if ((action.Attempts == 1 || action.Failed) && options.Value.SuperAdminUserId > 0)
                         db.OutgoingActions.Add(new OutgoingAction
                         {
-                            LogicalKey = $"delivery:{action.Id}:alert:{action.Failed}", ChatId = options.Value.SuperAdminUserId, RetryAt = now,
+                            LogicalKey = $"delivery:{action.Id}:alert:{action.Attempts}:{action.Failed}", ChatId = options.Value.SuperAdminUserId, RetryAt = now,
                             Payload = JsonSerializer.Serialize(new BotReply($"Проблема доставки #{action.Id} ({action.Kind}), объект {action.EntityId:N}: {action.LastError}. " +
                                 (action.Failed ? "Нужна проверка прав/конфигурации." : "Запланирован повтор.")))
                         });

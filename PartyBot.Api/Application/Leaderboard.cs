@@ -22,8 +22,7 @@ public sealed class Leaderboard(BotDbContext db)
 
     public async Task<BotReply> ReplyAsync(Game game, long actor, CancellationToken ct)
     {
-        // Stage 5 supplies the immutable final snapshot; never substitute a live ranking for it.
-        if (game.State == GameState.Finished) return new("Игра завершена. Итоговый снимок пока недоступен.");
+        if (game.State == GameState.Finished) return await FinalReplyAsync(game, actor, ct);
         var rows = await ReadAsync(ct);
         var text = "Рейтинг — топ-10\n" + string.Join("\n", rows.Take(10).Select((r, i) => $"{i + 1}. {r.Name} #{r.ParticipantId} — {r.Points}"));
         var own = await db.Participants.AsNoTracking().SingleOrDefaultAsync(p => p.TelegramUserId == actor, ct);
@@ -35,5 +34,19 @@ public sealed class Leaderboard(BotDbContext db)
             text += $"\nТвоё место: {index + 1}. {own.DisplayName} #{own.Id} — {rows[index].Points}";
         }
         return new(text, [[new("Обновить рейтинг", "rank")]]);
+    }
+
+    private async Task<BotReply> FinalReplyAsync(Game game, long actor, CancellationToken ct)
+    {
+        if (game.FinishedAt is null) return new("Игра завершена, но итоговый снимок отсутствует. Обратитесь к суперадмину.");
+        var snapshot = await db.FinalStandings.AsNoTracking().Where(r => r.GameId == game.Id).ToListAsync(ct);
+        var text = "Итоговый рейтинг — топ-10\n" + string.Join("\n", snapshot.Where(r => r.Rank != null).OrderBy(r => r.Rank).Take(10)
+            .Select(r => $"{r.Rank}. {r.Name} #{r.ParticipantId} — {r.Points}"));
+        var own = snapshot.SingleOrDefault(r => r.TelegramUserId == actor);
+        text += own is null ? "\nТебя нет в итоговом снимке." : own.Disqualified
+            ? $"\n{own.Name} #{own.ParticipantId}: DQ, места нет. Сохранённый результат: {own.Points}."
+            : $"\nТвоё место: {own.Rank}. {own.Name} #{own.ParticipantId} — {own.Points}";
+        if (game.ForceFinalized) text += $"\nФорс-финал. Непроверенных ответов: {game.UnreviewedCount}. Причина: {game.FinalReason}";
+        return new(text, [[new("Итоговый рейтинг", "rank")]]);
     }
 }

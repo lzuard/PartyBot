@@ -13,6 +13,11 @@ namespace PartyBot.Tests;
 public sealed class PanelRoutingMigrationTests
 {
     [Theory]
+    [InlineData("/close", CommandKind.AskClose)]
+    [InlineData("/finalize", CommandKind.AskFinalize)]
+    [InlineData("/forcefinalize reason", CommandKind.AskForceFinalize)]
+    [InlineData("/diagnostics", CommandKind.Diagnostics)]
+    [InlineData("/retry 1", CommandKind.AskRetryDelivery)]
     [InlineData("/rank", CommandKind.Leaderboard)]
     [InlineData("/admin", CommandKind.Admin)]
     [InlineData("/dq 1 reason", CommandKind.AskDisqualify)]
@@ -24,6 +29,11 @@ public sealed class PanelRoutingMigrationTests
         Assert.Equal(999, command.ActorId);
     }
     [Theory]
+    [InlineData("retryyes:no")]
+    [InlineData("retry:-1")]
+    [InlineData("diagnostics:-1")]
+    [InlineData("transitionyes:no")]
+    [InlineData("transitionno:extra:extra")]
     [InlineData("disciplineyes:no")]
     [InlineData("disciplineno:")]
     [InlineData("person:-1")]

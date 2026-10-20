@@ -30,6 +30,12 @@ public sealed class Game
     public GameState State { get; set; }
     public int Version { get; set; }
     public DateTimeOffset? OpenedAt { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
+    public long? FinalizedBy { get; set; }
+    public bool ForceFinalized { get; set; }
+    public string? FinalReason { get; set; }
+    public int UnreviewedCount { get; set; }
     public int? SkipCooldownMinutes { get; set; }
     public int? SubmitCooldownMinutes { get; set; }
     public bool DemonstrationCatalog { get; set; }

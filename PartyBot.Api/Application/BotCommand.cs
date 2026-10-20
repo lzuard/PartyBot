@@ -13,6 +13,8 @@ public enum CommandKind
     AskOpen,
     ConfirmOpen,
     CancelOpen,
+    Diagnostics, AskRetryDelivery, ConfirmRetryDelivery, CancelRetryDelivery,
+    AskClose, AskFinalize, AskForceFinalize, ConfirmTransition, CancelTransition,
     Leaderboard, Admin, AdminParticipant, AskDisqualify, AskReinstate, ConfirmDiscipline, CancelDiscipline,
     Help, UnsupportedMedia, Photo, ConfirmAnswer, ReplaceAnswer, Approve, AskReject, ConfirmReject, CancelReject
 }

@@ -26,7 +26,9 @@ public sealed class ReplyDelivery(
         {
             var reply = JsonSerializer.Deserialize<BotReply>(action.Payload) ??
                         throw new InvalidOperationException("Invalid reply payload.");
-            var sent = await gateway.SendReplyAsync(action.ChatId, reply, cancellationToken);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(15));
+            var sent = await gateway.SendReplyAsync(action.ChatId, reply, deadline.Token);
             action.MessageId = sent.MessageId;
         }
         catch (Exception error) when (error is ApiRequestException or HttpRequestException or IOException ||

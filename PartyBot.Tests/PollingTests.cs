@@ -57,7 +57,35 @@ public sealed class PollingTests
         using var next = new InstanceLease(fixture.DatabasePath);
     }
 
-    private sealed class ScriptedUpdates : ITelegramUpdateSource
+
+    [Fact]
+    public async Task Host_restart_reads_saved_offset_and_duplicate_update_does_not_recreate_history()
+    {
+        await using var fixture = new GameFixture();
+        await fixture.InitializeAsync();
+        foreach (var expectedOffset in new int?[] { null, 501 })
+        {
+            var updates = new ScriptedUpdates(expectedOffset);
+            var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+            { EnvironmentName = Environments.Development, DisableDefaults = true });
+            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Bot:DatabasePath"] = fixture.DatabasePath });
+            builder.Services.AddPartyBot(builder.Configuration, builder.Environment);
+            builder.Services.AddSingleton<TimeProvider>(fixture.Clock);
+            builder.Services.AddSingleton<ITelegramUpdateSource>(updates);
+            builder.Services.AddHostedService<PollingWorker>();
+            using var host = builder.Build();
+            await host.StartAsync();
+            try { Assert.Equal(501, await updates.SecondOffset.Task.WaitAsync(TimeSpan.FromSeconds(10))); }
+            finally { await host.StopAsync(); }
+        }
+        await using var db = fixture.Open();
+        Assert.Single(await db.Participants.ToListAsync());
+        Assert.Single(await db.ProcessedUpdates.ToListAsync());
+        Assert.Single(await db.AuditEvents.ToListAsync());
+        Assert.Single(await db.OutgoingActions.ToListAsync());
+    }
+
+    private sealed class ScriptedUpdates(int? expectedFirstOffset = null) : ITelegramUpdateSource
     {
         private int calls;
 
@@ -68,7 +96,7 @@ public sealed class PollingTests
         {
             if (calls++ == 0)
             {
-                Assert.Null(offset);
+                Assert.Equal(expectedFirstOffset, offset);
                 return
                 [
                     new Update

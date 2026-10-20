@@ -13,6 +13,27 @@ public static class UpdateRouter
         {
             if (callback.From.IsBot) return new BotCommand(update.Id, 0, 0, false, CommandKind.Ignore);
             var parts = data.Split(':');
+            if (parts[0] is "diagnostics" or "retry" or "retryyes" or "retryno")
+            {
+                if (parts.Length != 2) return new(update.Id, 0, 0, false, CommandKind.Ignore);
+                var kindOps = parts[0] switch { "diagnostics" => CommandKind.Diagnostics, "retry" => CommandKind.AskRetryDelivery,
+                    "retryyes" => CommandKind.ConfirmRetryDelivery, _ => CommandKind.CancelRetryDelivery };
+                var page = 0;
+                Guid request = default;
+                if (kindOps == CommandKind.Diagnostics && (!int.TryParse(parts[1], out page) || page < 0) ||
+                    kindOps == CommandKind.AskRetryDelivery && (!long.TryParse(parts[1], out var id) || id <= 0) ||
+                    kindOps is CommandKind.ConfirmRetryDelivery or CommandKind.CancelRetryDelivery && !Guid.TryParseExact(parts[1], "N", out request))
+                    return new(update.Id, 0, 0, false, CommandKind.Ignore);
+                return new(update.Id, callback.From.Id, message.Chat.Id, message.Chat.Type == ChatType.Private,
+                    kindOps, Name: parts[1], EntityId: request, Page: page);
+            }
+            if (parts[0] is "transitionyes" or "transitionno")
+            {
+                if (parts.Length != 2 || !Guid.TryParseExact(parts[1], "N", out var transition))
+                    return new(update.Id, 0, 0, false, CommandKind.Ignore);
+                return new(update.Id, callback.From.Id, message.Chat.Id, message.Chat.Type == ChatType.Private,
+                    parts[0] == "transitionyes" ? CommandKind.ConfirmTransition : CommandKind.CancelTransition, EntityId: transition);
+            }
             if (parts[0] is "admin" or "person" or "disciplineyes" or "disciplineno")
             {
                 if (parts.Length != 2) return new(update.Id, 0, 0, false, CommandKind.Ignore);
@@ -48,6 +69,7 @@ public static class UpdateRouter
 
             var kind = parts[0] switch
             {
+                "close" => CommandKind.AskClose, "finalize" => CommandKind.AskFinalize, "forcefinalize" => CommandKind.AskForceFinalize,
                 "rank" => CommandKind.Leaderboard, "open" => CommandKind.AskOpen,
                 "get" => CommandKind.GetTask, "show" => CommandKind.ShowTask,
                 "skip" => CommandKind.AskSkip, "skipyes" => CommandKind.ConfirmSkip, "skipno" => CommandKind.CancelSkip,
@@ -89,6 +111,8 @@ public static class UpdateRouter
             var command = parts.FirstOrDefault()?.Split('@')[0].ToLowerInvariant();
             var kind = command switch
             {
+                "/close" => CommandKind.AskClose, "/finalize" => CommandKind.AskFinalize, "/forcefinalize" => CommandKind.AskForceFinalize,
+                "/diagnostics" => CommandKind.Diagnostics, "/retry" => CommandKind.AskRetryDelivery,
                 "/rank" => CommandKind.Leaderboard, "/admin" => CommandKind.Admin,
                 "/dq" => CommandKind.AskDisqualify, "/reinstate" => CommandKind.AskReinstate,
                 "/start" => CommandKind.Start, "/name" => CommandKind.Name,

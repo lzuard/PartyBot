@@ -33,3 +33,7 @@ README.md
 **/photos
 
 **/*.db.lock
+
+# Local deployment secrets and Python cache
+deploy/partybot.env
+**/__pycache__/

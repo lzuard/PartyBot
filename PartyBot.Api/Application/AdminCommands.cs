@@ -22,8 +22,14 @@ public sealed class AdminCommands(BotDbContext db, TimeProvider time, BotOptions
             var buttons = people.Skip(page * 10).Take(10).Select(p => new[] { new BotButton($"#{p.Id} {p.DisplayName}{(p.Disqualified ? " [DQ]" : "")}", $"person:{p.Id}") }).ToList();
             if (page > 0) buttons.Add([new("Назад", $"admin:{page - 1}")]);
             if ((page + 1) * 10 < people.Count) buttons.Add([new("Далее", $"admin:{page + 1}")]);
-            buttons.Add([new("Рейтинг", "rank")]);
+            buttons.Add([new("Рейтинг", "rank"), new("Диагностика", "diagnostics:0")]);
             if (game.State == GameState.Registration) buttons.Add([new("Открыть игру", "open")]);
+            if (game.State == GameState.Open) buttons.Add([new("Закрыть приём", "close")]);
+            if (game.State == GameState.Review)
+            {
+                buttons.Add([new("Завершить игру", "finalize")]);
+                buttons.Add([new("Форс-финал", "forcefinalize")]);
+            }
             return new($"Панель суперадмина. Игра: {game.State}. Участников: {people.Count}.\nВыберите участника (страница {page + 1}).", buttons.ToArray());
         }
         if (game.State == GameState.Finished && command.Kind != CommandKind.AdminParticipant)

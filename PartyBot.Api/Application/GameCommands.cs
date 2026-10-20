@@ -53,6 +53,10 @@ public sealed class GameCommands(
 
     private async Task<BotReply?> ApplyAsync(BotCommand command, Game game, CancellationToken cancellationToken)
     {
+        if (OperationsCommands.Handles(command.Kind))
+            return await new OperationsCommands(db, time, options.Value).ApplyAsync(command, game, cancellationToken);
+        if (FinishCommands.Handles(command.Kind))
+            return await new FinishCommands(db, time, options.Value).ApplyAsync(command, game, cancellationToken);
         if (command.Kind == CommandKind.Leaderboard)
             return await new Leaderboard(db).ReplyAsync(game, command.ActorId, cancellationToken);
         if (AdminCommands.Handles(command.Kind))

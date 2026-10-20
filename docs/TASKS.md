@@ -105,13 +105,53 @@
 
 Ограничения: Telegram API не вызывался, ручная репетиция и Docker build не выполнялись. Создание/чтение итогового snapshot и штатные переходы Review/Finished остаются этапу 5; при внешнем Finished живой рейтинг не подменяет отсутствующий снимок. Управляемое восстановление постоянных ошибок — этап 6. Новые технические решения и команды описаны в DECISIONS/README.
 
-## 5. Подсчёт и финал — TODO
+## 5. Подсчёт и финал — DONE (2026-10-20)
 
 CloseIntake, Review, обычный Finalize, ForceFinalize с предупреждением, Unreviewed и snapshot. Гонки с Confirm/Approve, старые кнопки после закрытия. После Finished только чтение.
 
-## 6. Восстановление и эксплуатация — TODO
+Выполнено:
+
+- `/close`, `/finalize`, `/forcefinalize ПРИЧИНА` и кнопки панели суперадмина. Персистентные подтверждения/отмена, проверка actor/личного чата/версии, только переходы вперёд. Close фиксирует ClosedAt, сохраняет Active/кандидатов и закрывает все игровые изменения участника; Review допускает модерацию.
+- Обычный финал запрещён при Pending. Форс-финал показывает число и последствия, требует причины и отдельного подтверждения; изменение числа Pending требует нового подтверждения.
+- Unreviewed без баллов/возвратов/Refill и без изменения кулдауна; аудит, уведомление участника, обновление архива и cleanup через outbox. Доставка продолжает работать после Finished.
+- Атомарный snapshot: имя/Telegram ID/DQ/место/очки/max SubmittedAt для всех участников, финальные UTC-метаданные, actor, факт/причина форса и число Unreviewed. После Finished рейтинг читает снимок, игровые изменения и модерация запрещены.
+- Миграция GameFinalization сохраняет прежнюю БД; PK/уникальные индексы защищают строки и места снимка от дублирования.
+
+Проверки из корня репозитория:
+
+- `dotnet test PartyBot.slnx --no-restore -p:UseSharedCompilation=false` — 106/106, без пропусков и предупреждений. Новые проверки: закрытие всех путей приёма при сохранении Active/кандидата, Review-модерация, запрет обычного финала при Pending, Unreviewed без возвратов/очков, последующая доставка архива, обе очередности гонок Confirm/Close и Approve/ForceFinalize, роли/чаты/отмена/изменившееся число Pending/старые кнопки, атомарный откат финала, неизменность snapshot после рестарта и изменения исходных данных, полный порядок/top-10/личное место/DQ/нулевые результаты и пустой финал, маршрутизация, миграция этапа 4.
+- `dotnet build PartyBot.slnx --no-restore -p:UseSharedCompilation=false` — 0 предупреждений, 0 ошибок.
+- `dotnet ef migrations has-pending-model-changes --project PartyBot.Api --no-build` — модель соответствует миграциям.
+- `dotnet run --project PartyBot.Api --launch-profile Bootstrap --no-build -- --migrate-only --Bot:DatabasePath=/tmp/partybot-stage5-smoke-5ac218dd.db --Bot:PollingEnabled=false` — пять миграций новой SQLite, exit 0.
+- `dotnet run --project PartyBot.Api --launch-profile Bootstrap --no-build -- --Bot:DatabasePath=/tmp/partybot-stage5-smoke-5ac218dd.db --Bot:PollingEnabled=false` — host запущен на той же БД, Registration, 3 demo-задания, пустые FinalStandings; остановлен Ctrl+C. SQLite foreign_key_check пуст.
+- `git diff --check` — успешно.
+
+Ограничения: реальный Telegram API и сообщения участникам не использовались; ручная репетиция и Docker build не выполнялись. Диагностика/управляемое восстановление постоянных ошибок доставки и эксплуатационные процедуры остаются этапу 6, ручная репетиция — этапу 7. Команды и технические решения обновлены в README/DECISIONS.
+
+## 6. Восстановление и эксплуатация — DONE (2026-10-20)
 
 Проверить offset/inbox, рестарт на каждом важном шаге, pending deliveries, retry_after, неполный альбом, отказ прав чатов, cleanup. Добавить безопасную диагностику суперадмину: количества Pending, недоставленных архивов, ошибок доски, состояние игры. Обновить OPERATIONS реальными командами, deployment-конфигом и процедурой бэкапа.
+
+Выполнено:
+
+- `/diagnostics` в личной панели суперадмина: game state, Pending, неполные архивы, сборка альбомов, незавершённые/Failed, ошибки доски/cleanup и offset; страницы безопасных ошибок без payload/секретов.
+- `/retry НОМЕР` с сохраняемым подтверждением/отменой и проверками ролей/актуальности. Только Failed; известные refs и прогресс cleanup сохраняются, бизнес-решение/баллы/финал не повторяются. Миграция DeliveryRecovery.
+- Исправлены повторный отказ медиа после ручного retry (уникальность alert) и восстановление WorkCard после failed WorkMedia. Текстовый сетевой шаг ограничен 15 секундами.
+- SQLite-aware backup/verify/restore в новый файл, integrity/FK check, права 0600, тест online WAL. Compose-конфигурация, secret env example, переработанные OPERATIONS и README с процедурами запуска/остановки/резервирования/восстановления.
+
+Проверки из корня репозитория:
+
+- `dotnet test PartyBot.slnx --no-restore -p:UseSharedCompilation=false` — 120/120, без пропусков/предупреждений. Включает новую миграцию, повторный старт host с offset/дедупликацией, recovery архива/доски/cleanup/текста, повторный отказ, сохранение финала/очков, частичное удаление с продолжением через новые DbContext, роли/чаты/отмену/старые запросы/откат retry и запрет обхода retry_after. Ранее добавленные проверки неполных альбомов/доставок и рестарта также прошли.
+- `python3 -m unittest discover -s scripts -p 'test_*.py' -v` — 3/3: backup открытой WAL-БД, восстановление, запрет перезаписи, повреждённый/отсутствующий источник и нарушение FK.
+- `dotnet build PartyBot.slnx --no-restore -p:UseSharedCompilation=false` — 0 предупреждений/ошибок; `dotnet ef migrations has-pending-model-changes --project PartyBot.Api --no-build` — изменений модели нет.
+- `dotnet publish PartyBot.Api/PartyBot.Api.csproj -c Release --no-restore -p:UseSharedCompilation=false -o /tmp/partybot-stage6-publish-b93e62` — успешно.
+- `dotnet /tmp/partybot-stage6-publish-b93e62/PartyBot.Api.dll --environment Development --Bot:DatabasePath=/tmp/partybot-stage6-smoke-b93e62.db --Bot:PollingEnabled=false` — Release host стартовал без Telegram; новая БД с шестью миграциями.
+- `python3 scripts/sqlite_backup.py backup /tmp/partybot-stage6-smoke-b93e62.db /tmp/partybot-stage6-backup-b93e62.db`, затем `verify /tmp/partybot-stage6-backup-b93e62.db` и `restore /tmp/partybot-stage6-backup-b93e62.db /tmp/partybot-stage6-restored-b93e62.db` — успешно, integrity/FK OK. Backup сделан при работающем тестовом host.
+- После остановки исходного host та же Release-команда с `--Bot:DatabasePath=/tmp/partybot-stage6-restored-b93e62.db` успешно запустила восстановленную копию без polling; оба процесса остановлены Ctrl+C.
+- `docker compose -f deploy/compose.yaml config --no-env-resolution --no-interpolate -q` — успешно, без чтения секретов. `docker version --format '{{.Server.Version}}'` — daemon недоступен; Docker build/run не проверены.
+- `git diff --check` — успешно.
+
+Ограничения: реальные Telegram-сообщения не отправлялись. Сетевые дубли между send и сохранением ID возможны; восстановление старого backup не гарантирует возврат уже подтверждённых updates. Полная проверка прав/контейнера и репетиция с аккаунтами остаются эксплуатационной проверкой этапа 7.
 
 ## 7. Репетиция — TODO
 

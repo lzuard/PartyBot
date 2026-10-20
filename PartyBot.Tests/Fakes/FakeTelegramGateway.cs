@@ -12,6 +12,7 @@ public sealed class FakeTelegramGateway : ITelegramGateway, IMediaTelegramGatewa
     public List<(long ChatId, long SourceChatId, IReadOnlyList<int> Ids)> Copies { get; } = [];
     public int? NextBatchCount { get; set; }
     public Exception? DeleteFailure { get; set; }
+    public Action<TelegramMessageReference>? BeforeDelete { get; set; }
     public Action? BeforeNetwork { get; set; }
     public List<(TelegramMessageReference Reference, string Text)> Sent { get; } = [];
     public List<BotReply> Replies { get; } = [];
@@ -79,6 +80,7 @@ public sealed class FakeTelegramGateway : ITelegramGateway, IMediaTelegramGatewa
     public Task DeleteAsync(long chatId, int messageId, CancellationToken ct)
     {
         CheckFailure();
+        BeforeDelete?.Invoke(new(chatId, messageId));
         if (DeleteFailure is { } failure) throw failure;
         Deleted.Add(new(chatId, messageId));
         return Task.CompletedTask;

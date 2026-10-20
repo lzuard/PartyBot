@@ -18,3 +18,7 @@ appsettings.Local.json
 TestResults/
 
 *.db.lock
+
+# Local deployment secrets and Python cache
+deploy/partybot.env
+**/__pycache__/

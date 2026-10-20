@@ -158,12 +158,68 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.ToTable("DeliveryMessages");
                 });
 
+            modelBuilder.Entity("PartyBot.Api.Domain.FinalStanding", b =>
+                {
+                    b.Property<int>("GameId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ParticipantId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Disqualified")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("LastApprovedSubmittedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Rank")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("TelegramUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("GameId", "ParticipantId");
+
+                    b.HasIndex("ParticipantId");
+
+                    b.HasIndex("GameId", "Rank")
+                        .IsUnique()
+                        .HasFilter("Rank IS NOT NULL");
+
+                    b.HasIndex("GameId", "TelegramUserId")
+                        .IsUnique();
+
+                    b.ToTable("FinalStandings");
+                });
+
             modelBuilder.Entity("PartyBot.Api.Domain.Game", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<long?>("ClosedAt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("DemonstrationCatalog")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FinalReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("FinalizedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("FinishedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ForceFinalized")
                         .HasColumnType("INTEGER");
 
                     b.Property<long?>("OpenedAt")
@@ -176,6 +232,9 @@ namespace PartyBot.Api.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("SubmitCooldownMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnreviewedCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Version")
@@ -460,6 +519,35 @@ namespace PartyBot.Api.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PartyBot.Api.Domain.TransitionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GameVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PendingCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TransitionRequests");
+                });
+
             modelBuilder.Entity("PartyBot.Api.Persistence.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -635,6 +723,31 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.ToTable("ProcessedUpdates");
                 });
 
+            modelBuilder.Entity("PartyBot.Api.Persistence.RecoveryRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ActionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionId");
+
+                    b.ToTable("RecoveryRequests");
+                });
+
             modelBuilder.Entity("PartyBot.Api.Domain.AnswerCandidate", b =>
                 {
                     b.HasOne("PartyBot.Api.Domain.Attempt", null)
@@ -680,6 +793,21 @@ namespace PartyBot.Api.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("SubmissionId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Domain.FinalStanding", b =>
+                {
+                    b.HasOne("PartyBot.Api.Domain.Game", null)
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PartyBot.Api.Domain.Participant", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -769,6 +897,15 @@ namespace PartyBot.Api.Persistence.Migrations
                     b.HasOne("PartyBot.Api.Domain.Participant", null)
                         .WithMany()
                         .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PartyBot.Api.Persistence.RecoveryRequest", b =>
+                {
+                    b.HasOne("PartyBot.Api.Persistence.OutgoingAction", null)
+                        .WithMany()
+                        .HasForeignKey("ActionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -1,0 +1,27 @@
+services:
+  partybot:
+    build:
+      context: ..
+      dockerfile: PartyBot.Api/Dockerfile
+    restart: on-failure:3
+    stop_grace_period: 45s
+    user: "${PARTYBOT_UID:-1654}:${PARTYBOT_GID:-1654}"
+    env_file:
+      - partybot.env
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      Bot__DatabasePath: /data/partybot.db
+      Bot__CatalogPath: /config/catalog.json
+    volumes:
+      - ${PARTYBOT_DATA_DIR:-/srv/partybot/data}:/data
+      - ${PARTYBOT_CATALOG:-/srv/partybot/catalog.json}:/config/catalog.json:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
